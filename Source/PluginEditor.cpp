@@ -16,6 +16,14 @@ NeuralFlowAmpAudioProcessorEditor::NeuralFlowAmpAudioProcessorEditor (NeuralFlow
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
     setSize (400, 300);
+
+	driveKnob.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+	driveKnob.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 50, 20);
+	addAndMakeVisible(driveKnob);
+
+	// Create attachment between slider and APVTS parameter
+	driveAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+		audioProcessor.apvts, "DRIVE", driveKnob);
 }
 
 NeuralFlowAmpAudioProcessorEditor::~NeuralFlowAmpAudioProcessorEditor()
@@ -30,11 +38,12 @@ void NeuralFlowAmpAudioProcessorEditor::paint (juce::Graphics& g)
 
     g.setColour (juce::Colours::white);
     g.setFont (juce::FontOptions (15.0f));
-    g.drawFittedText ("Hello Bob!", getLocalBounds(), juce::Justification::centred, 1);
 }
 
 void NeuralFlowAmpAudioProcessorEditor::resized()
 {
-    // This is generally where you'll want to lay out the positions of any
-    // subcomponents in your editor..
+    const int knobSize = 100;
+    driveKnob.setBounds((getWidth() - knobSize) / 2,
+                        (getHeight() - knobSize) / 2,
+                        knobSize, knobSize);
 }

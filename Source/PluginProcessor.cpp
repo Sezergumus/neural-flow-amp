@@ -19,7 +19,7 @@ NeuralFlowAmpAudioProcessor::NeuralFlowAmpAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+	 ), apvts(*this, nullptr, "Parameters", createParameterLayout())
 #endif
 {
 }
@@ -140,6 +140,10 @@ void NeuralFlowAmpAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
+	auto currentDrive = apvts.getRawParameterValue("DRIVE")->load();
+
+	crunchEffect.setDrive(currentDrive);
+
     crunchEffect.process(buffer);
 }
 
@@ -173,4 +177,12 @@ void NeuralFlowAmpAudioProcessor::setStateInformation (const void* data, int siz
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new NeuralFlowAmpAudioProcessor();
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout NeuralFlowAmpAudioProcessor::createParameterLayout() {
+	std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("DRIVE", "Drive", 1.0f, 100.0f, 50.0f));
+
+    return { params.begin(), params.end() };
 }
