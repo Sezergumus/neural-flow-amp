@@ -4,6 +4,8 @@
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
   <MAINGROUP id="P3mznz" name="NeuralFlowAmp">
     <GROUP id="{03D3BA1D-157F-C80C-B088-57C49E7719D9}" name="Source">
+      <FILE id="tOZ6r3" name="Crunch.cpp" compile="1" resource="0" file="Source/Crunch.cpp"/>
+      <FILE id="QdU6XP" name="Crunch.h" compile="0" resource="0" file="Source/Crunch.h"/>
       <FILE id="Y7G5Fd" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="c6Vkns" name="PluginProcessor.h" compile="0" resource="0"
@@ -30,7 +32,8 @@
     <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
   </MODULES>
-  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"
+               JUCE_ASIO="1"/>
   <EXPORTFORMATS>
     <VS2026 targetFolder="Builds/VisualStudio2026">
       <CONFIGURATIONS>
