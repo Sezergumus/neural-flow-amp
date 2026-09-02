@@ -1,0 +1,20 @@
+# JUCE / Projucer generated folders
+JuceLibraryCode/
+Builds/
+bin/
+
+# Visual Studio / MSBuild
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+x64/
+ipch/
+.vs/
+*.aps
+
+# Mac / Xcode
+.DS_Store
+build/
+*.xcodeproj
+*.xcworkspace
