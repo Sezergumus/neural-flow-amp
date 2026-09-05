@@ -94,8 +94,13 @@ void NeuralFlowAmpAudioProcessor::changeProgramName (int index, const juce::Stri
 void NeuralFlowAmpAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
 	crunchEffect.prepare(sampleRate, samplesPerBlock);
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
+   
+	juce::dsp::ProcessSpec spec;
+	spec.sampleRate = sampleRate;
+	spec.maximumBlockSize = samplesPerBlock;
+	spec.numChannels = getTotalNumOutputChannels();
+
+	eqChain.prepare(spec);
 }
 
 void NeuralFlowAmpAudioProcessor::releaseResources()
@@ -143,8 +148,23 @@ void NeuralFlowAmpAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
 	auto currentDrive = apvts.getRawParameterValue("DRIVE")->load();
 
 	crunchEffect.setDrive(currentDrive);
-
     crunchEffect.process(buffer);
+
+	float lowDb = juce::jmap(apvts.getRawParameterValue("LOW")->load(), 0.0f, 10.0f, -15.0f, 15.0f);
+	float midDb = juce::jmap(apvts.getRawParameterValue("MID")->load(), 0.0f, 10.0f, -15.0f, 15.0f);
+    float highDb = juce::jmap(apvts.getRawParameterValue("HIGH")->load(), 0.0f, 10.0f, -15.0f, 15.0f);
+
+    *eqChain.get<0>().coefficients = *juce::dsp::IIR::Coefficients<float>::makeLowShelf(getSampleRate(), 250.0f, 0.707f, juce::Decibels::decibelsToGain(lowDb));
+    *eqChain.get<1>().coefficients = *juce::dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(), 1000.0f, 0.707f, juce::Decibels::decibelsToGain(midDb));
+    *eqChain.get<2>().coefficients = *juce::dsp::IIR::Coefficients<float>::makeHighShelf(getSampleRate(), 4000.0f, 0.707f, juce::Decibels::decibelsToGain(highDb));
+
+	juce::dsp::AudioBlock<float> block(buffer);
+	juce::dsp::ProcessContextReplacing<float> context(block);
+	eqChain.process(context);
+
+	auto currentMaster = apvts.getRawParameterValue("MASTER")->load();
+	float masterGain = currentMaster / 10.0f;
+	buffer.applyGain(masterGain);
 }
 
 //==============================================================================
@@ -183,6 +203,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout NeuralFlowAmpAudioProcessor:
 	std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>("DRIVE", "Drive", 1.0f, 100.0f, 50.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("LOW", "Low", 0.0f, 10.0f, 5.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("MID", "Mid", 0.0f, 10.0f, 5.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("HIGH", "High", 0.0f, 10.0f, 5.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("MASTER", "Master", 0.0f, 10.0f, 5.0f));
 
     return { params.begin(), params.end() };
 }

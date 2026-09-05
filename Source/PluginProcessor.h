@@ -1,11 +1,3 @@
-/*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin processor.
-
-  ==============================================================================
-*/
-
 #pragma once
 
 #include <JuceHeader.h>
@@ -61,5 +53,9 @@ private:
 	juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     Crunch crunchEffect;
+
+	using Filter = juce::dsp::IIR::Filter<float>;
+	juce::dsp::ProcessorChain<Filter, Filter, Filter> eqChain;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NeuralFlowAmpAudioProcessor)
 };
