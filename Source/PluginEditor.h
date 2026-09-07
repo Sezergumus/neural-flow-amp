@@ -67,7 +67,7 @@ public:
 //==============================================================================
 /**
 */
-class NeuralFlowAmpAudioProcessorEditor  : public juce::AudioProcessorEditor
+class NeuralFlowAmpAudioProcessorEditor : public juce::AudioProcessorEditor, public juce::Timer
 {
 public:
     NeuralFlowAmpAudioProcessorEditor (NeuralFlowAmpAudioProcessor&);
@@ -92,6 +92,9 @@ private:
 
     juce::Rectangle<int> waveformArea;
     juce::Rectangle<int> knobPanelArea;
+
+    std::array<float, NeuralFlowAmpAudioProcessor::scopeSize> scopeDataToDraw;
+    void timerCallback() override;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NeuralFlowAmpAudioProcessorEditor)
 };

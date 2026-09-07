@@ -48,6 +48,10 @@ public:
 
     juce::AudioProcessorValueTreeState apvts;
 
+    static constexpr int scopeSize = 512;
+    std::array<float, scopeSize> scopeData;
+    std::atomic<bool> isNextFrameReady{ false };
+
 private:
     //==============================================================================    
 	juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
@@ -56,6 +60,8 @@ private:
 
 	using Filter = juce::dsp::IIR::Filter<float>;
 	juce::dsp::ProcessorChain<Filter, Filter, Filter> eqChain;
+
+    int scopeDataIndex = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NeuralFlowAmpAudioProcessor)
 };

@@ -29,6 +29,7 @@ NeuralFlowAmpAudioProcessorEditor::NeuralFlowAmpAudioProcessorEditor (NeuralFlow
     setupKnob(midKnob, midAttachment, "MID", "MID", juce::Colour(0, 213, 255));
     setupKnob(highKnob, highAttachment, "HIGH", "HIGH", juce::Colour(0, 213, 255));
     setupKnob(masterKnob, masterAttachment, "MASTER", "MASTER", juce::Colour(0, 255, 150));
+    startTimer(60); 
 }
 
 NeuralFlowAmpAudioProcessorEditor::~NeuralFlowAmpAudioProcessorEditor()
@@ -38,6 +39,7 @@ NeuralFlowAmpAudioProcessorEditor::~NeuralFlowAmpAudioProcessorEditor()
 	midKnob.setLookAndFeel(nullptr);
 	highKnob.setLookAndFeel(nullptr);
 	masterKnob.setLookAndFeel(nullptr);
+    stopTimer();
 }
 
 //==============================================================================
@@ -65,6 +67,41 @@ void NeuralFlowAmpAudioProcessorEditor::paint (juce::Graphics& g)
 
     drawPanel(waveformArea, "", juce::Colour(4, 4, 4), true);
     drawPanel(knobPanelArea, "", juce::Colour(14, 16, 20), true);
+
+	// Drawing oscilloscope waveform
+
+    auto scopeRect = waveformArea.reduced(10).toFloat();
+    
+    juce::Path wavePath;
+    
+	// A lambda function to map the audio sample value to the Y coordinate in the waveform area
+    auto mapToY = [&](float value) {
+		// Audio is normalized between -1.0 and 1.0, so we map it to the height of the waveform area
+		// %45 of the height is used to leave some padding at the top and bottom
+        return scopeRect.getCentreY() - (value * scopeRect.getHeight() * 0.45f); 
+    };
+
+    wavePath.startNewSubPath (scopeRect.getX(), mapToY(scopeDataToDraw[0]));
+
+	// Calculate the rest 511 points of the waveform path based on the scope data
+    for (int i = 1; i < scopeDataToDraw.size(); ++i)
+    {
+		// X coordinate is evenly distributed across the width of the waveform area
+        float x = scopeRect.getX() + (scopeRect.getWidth() * i / (float)(scopeDataToDraw.size() - 1));
+        float y = mapToY(scopeDataToDraw[i]);
+        
+        wavePath.lineTo (x, y);
+    }
+
+    auto neonColour = juce::Colour (0, 213, 255); // Cyber Blue
+
+    // Glow Effect
+    g.setColour (neonColour.withAlpha (0.3f));
+    g.strokePath (wavePath, juce::PathStrokeType (4.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+
+	// Main Waveform
+    g.setColour (neonColour.brighter (0.6f));
+    g.strokePath (wavePath, juce::PathStrokeType (1.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 }
 
 void NeuralFlowAmpAudioProcessorEditor::resized()
@@ -101,4 +138,16 @@ void NeuralFlowAmpAudioProcessorEditor::resized()
     flexBox.items.add(juce::FlexItem(masterKnob).withWidth(kWidth).withHeight(kHeight).withMargin(knobMargin));
 
     flexBox.performLayout(knobPanelArea);
+}
+
+void NeuralFlowAmpAudioProcessorEditor::timerCallback()
+{
+    if (audioProcessor.isNextFrameReady.load())
+    {
+        audioProcessor.isNextFrameReady.store(false);
+
+        scopeDataToDraw = audioProcessor.scopeData;
+
+        repaint(waveformArea);
+    }
 }

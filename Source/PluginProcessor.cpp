@@ -165,6 +165,25 @@ void NeuralFlowAmpAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
 	auto currentMaster = apvts.getRawParameterValue("MASTER")->load();
 	float masterGain = currentMaster / 10.0f;
 	buffer.applyGain(masterGain);
+
+    // OSCILLOSCOPE DATA
+    auto* channelData = buffer.getReadPointer(0);
+    for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+    {
+        // Turn soundwaves into array
+        if (scopeDataIndex < scopeSize)
+        {
+            scopeData[scopeDataIndex] = channelData[sample];
+            scopeDataIndex++;
+        }
+
+		// When the array is full, set the flag to true and reset the index to 0
+        if (scopeDataIndex >= scopeSize)
+        {
+            isNextFrameReady = true;
+            scopeDataIndex = 0; 
+        }
+    }
 }
 
 //==============================================================================
