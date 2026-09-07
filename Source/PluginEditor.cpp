@@ -7,7 +7,7 @@ NeuralFlowAmpAudioProcessorEditor::NeuralFlowAmpAudioProcessorEditor (NeuralFlow
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (900, 600);
+    setSize (1920, 1080);
 
 	juce::Slider* sliders[] = { &driveKnob, &lowKnob, &midKnob, &highKnob, &masterKnob };
 
@@ -38,23 +38,56 @@ NeuralFlowAmpAudioProcessorEditor::~NeuralFlowAmpAudioProcessorEditor()
 //==============================================================================
 void NeuralFlowAmpAudioProcessorEditor::paint (juce::Graphics& g)
 {
-	g.fillAll(juce::Colour(15, 15, 15));
+    g.fillAll(juce::Colour(12, 12, 12)); 
+
+    auto drawPanel = [&](juce::Rectangle<int> bounds, const juce::String& title, bool isInner = false) {
+        g.setColour(isInner ? juce::Colour(8, 8, 8) : juce::Colour(22, 22, 22));
+        g.fillRoundedRectangle(bounds.toFloat(), 6.0f);
+
+        g.setColour(isInner ? juce::Colour(35, 35, 35) : juce::Colour(45, 45, 45));
+        g.drawRoundedRectangle(bounds.toFloat(), 6.0f, 1.2f);
+
+        if (title.isNotEmpty() && !isInner) {
+            g.setColour(juce::Colours::white.withAlpha(0.8f));
+            g.setFont(juce::Font(14.0f, juce::Font::bold));
+            g.drawText(title, bounds.withTrimmedLeft(15).withTrimmedTop(12).withHeight(20), juce::Justification::topLeft);
+        }
+        };
+
+    drawPanel(leadChannelArea, "LEAD CHANNEL");
+    drawPanel(signalChainArea, "SIGNAL CHAIN");
+    drawPanel(cabSimArea, "CAB SIMULATION");
+    drawPanel(waveformArea, "", true);
+    drawPanel(knobPanelArea, "", true);
 }
 
 void NeuralFlowAmpAudioProcessorEditor::resized()
 {
-    auto topArea = getLocalBounds().removeFromTop(200).reduced(20);
+    auto area = getLocalBounds().reduced(15);
 
-	juce::FlexBox flexBox;
-	flexBox.flexDirection = juce::FlexBox::Direction::row;
-	flexBox.justifyContent = juce::FlexBox::JustifyContent::spaceAround;
-    flexBox.alignItems = juce::FlexBox::AlignItems::center;
+    leadChannelArea = area.removeFromTop(area.getHeight() / 2 - 5);
+    area.removeFromTop(10);
 
-    flexBox.items.add(juce::FlexItem(driveKnob).withWidth(100).withHeight(100));
-    flexBox.items.add(juce::FlexItem(lowKnob).withWidth(90).withHeight(90)); 
-    flexBox.items.add(juce::FlexItem(midKnob).withWidth(90).withHeight(90));
-    flexBox.items.add(juce::FlexItem(highKnob).withWidth(90).withHeight(90));
-    flexBox.items.add(juce::FlexItem(masterKnob).withWidth(100).withHeight(100));
+    signalChainArea = area.removeFromLeft(area.getWidth() / 2 - 5);
+    area.removeFromLeft(10); 
+    cabSimArea = area;
 
-    flexBox.performLayout(topArea);
+    auto leadContent = leadChannelArea.withTrimmedTop(35).reduced(15, 15);
+
+    knobPanelArea = leadContent.removeFromRight(350);
+    leadContent.removeFromRight(15); 
+    waveformArea = leadContent;
+
+    juce::FlexBox flexBox;
+    flexBox.flexDirection = juce::FlexBox::Direction::row;
+    flexBox.justifyContent = juce::FlexBox::JustifyContent::spaceBetween;
+
+    int kSize = 65;
+    flexBox.items.add(juce::FlexItem(driveKnob).withWidth(kSize).withHeight(kSize));
+    flexBox.items.add(juce::FlexItem(lowKnob).withWidth(kSize).withHeight(kSize));
+    flexBox.items.add(juce::FlexItem(midKnob).withWidth(kSize).withHeight(kSize));
+    flexBox.items.add(juce::FlexItem(highKnob).withWidth(kSize).withHeight(kSize));
+    flexBox.items.add(juce::FlexItem(masterKnob).withWidth(kSize).withHeight(kSize));
+
+    flexBox.performLayout(knobPanelArea.reduced(10));
 }

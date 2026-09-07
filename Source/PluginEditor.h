@@ -65,5 +65,12 @@ private:
 
     NeuralFlowAmpAudioProcessor& audioProcessor;
 
+    juce::Rectangle<int> leadChannelArea;
+    juce::Rectangle<int> signalChainArea;
+    juce::Rectangle<int> cabSimArea;
+
+    juce::Rectangle<int> waveformArea;
+    juce::Rectangle<int> knobPanelArea;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NeuralFlowAmpAudioProcessorEditor)
 };
