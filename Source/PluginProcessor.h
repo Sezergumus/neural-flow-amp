@@ -65,6 +65,10 @@ private:
 	using Filter = juce::dsp::IIR::Filter<float>;
 	juce::dsp::ProcessorChain<Filter, Filter, Filter> eqChain;
 
+    juce::dsp::Compressor<float> compressor;
+    juce::dsp::WaveShaper<float> overdrive;
+    juce::dsp::Gain<float> overdriveGain;
+    
     int scopeDataIndex = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NeuralFlowAmpAudioProcessor)

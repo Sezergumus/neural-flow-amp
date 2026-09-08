@@ -104,6 +104,13 @@ void NeuralFlowAmpAudioProcessor::prepareToPlay (double sampleRate, int samplesP
 	eqChain.prepare(spec);
 
 	cabSimulator.prepare(spec);
+
+	compressor.prepare(spec);
+	overdrive.prepare(spec);
+	overdriveGain.prepare(spec);
+
+	// Tube overdrive using tanh function
+	overdrive.functionToUse = [](float x) { return std::tanh(x); };
 }
 
 void NeuralFlowAmpAudioProcessor::releaseResources()
@@ -144,15 +151,41 @@ void NeuralFlowAmpAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-	// Clean output buffers in case of more output channels than input channels
+	// 1. CLEAR BUFFER
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-	auto currentDrive = apvts.getRawParameterValue("DRIVE")->load();
+	// 2. JUCE DSP AUDIO BLOCK
+    juce::dsp::AudioBlock<float> block(buffer);
+    juce::dsp::ProcessContextReplacing<float> context(block);
 
+    // 3. PRE-FX
+
+    // Compressor
+    auto compSust = apvts.getRawParameterValue("COMP_SUST")->load();
+    auto compAtt = apvts.getRawParameterValue("COMP_ATT")->load();
+    compressor.setThreshold(juce::jmap(compSust, 0.0f, 100.0f, 0.0f, -40.0f));
+    compressor.setAttack(compAtt);
+    compressor.process(context);
+
+    // Overdrive
+    auto odGain = apvts.getRawParameterValue("OD_GAIN")->load();
+    auto odLvl = apvts.getRawParameterValue("OD_LVL")->load();
+    overdriveGain.setGainLinear(juce::Decibels::decibelsToGain(odGain * 2.0f));
+    float odOutputMultiplier = juce::jmap(odLvl, 0.0f, 10.0f, 0.0f, 2.0f);
+
+    overdriveGain.process(context);
+    overdrive.process(context);
+    buffer.applyGain(odOutputMultiplier);
+
+    // 4. AMP CORE
+
+    // Preamp Drive
+	auto currentDrive = apvts.getRawParameterValue("DRIVE")->load();
 	crunchEffect.setDrive(currentDrive);
     crunchEffect.process(buffer);
 
+    // EQ
 	float lowDb = juce::jmap(apvts.getRawParameterValue("LOW")->load(), 0.0f, 10.0f, -15.0f, 15.0f);
 	float midDb = juce::jmap(apvts.getRawParameterValue("MID")->load(), 0.0f, 10.0f, -15.0f, 15.0f);
     float highDb = juce::jmap(apvts.getRawParameterValue("HIGH")->load(), 0.0f, 10.0f, -15.0f, 15.0f);
@@ -161,9 +194,9 @@ void NeuralFlowAmpAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
     *eqChain.get<1>().coefficients = *juce::dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(), 1000.0f, 0.707f, juce::Decibels::decibelsToGain(midDb));
     *eqChain.get<2>().coefficients = *juce::dsp::IIR::Coefficients<float>::makeHighShelf(getSampleRate(), 4000.0f, 0.707f, juce::Decibels::decibelsToGain(highDb));
 
-	juce::dsp::AudioBlock<float> block(buffer);
-	juce::dsp::ProcessContextReplacing<float> context(block);
 	eqChain.process(context);
+
+    // 5. CAB SIM
 
 	cabSimulator.process(context);
 
@@ -171,7 +204,7 @@ void NeuralFlowAmpAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
 	float masterGain = currentMaster / 10.0f;
 	buffer.applyGain(masterGain);
 
-    // OSCILLOSCOPE DATA
+    // 6. OSCILLOSCOPE
     auto* channelData = buffer.getReadPointer(0);
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
@@ -231,6 +264,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout NeuralFlowAmpAudioProcessor:
     params.push_back(std::make_unique<juce::AudioParameterFloat>("MID", "Mid", 0.0f, 10.0f, 5.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("HIGH", "High", 0.0f, 10.0f, 5.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("MASTER", "Master", 0.0f, 10.0f, 5.0f));
+
+    // Compressor
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("COMP_SUST", "Sustain", 0.0f, 100.0f, 50.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("COMP_ATT", "Attack", 0.0f, 100.0f, 10.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("COMP_MIX", "Blend", 0.0f, 100.0f, 100.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("COMP_LVL", "Level", -12.0f, 12.0f, 50.0f));
+
+
+    // Overdrive
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("OD_GAIN", "Gain", 0.0f, 10.0f, 3.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("OD_TONE", "Tone", 0.0f, 10.0f, 5.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("OD_LVL", "Level", 0.0f, 10.0f, 5.0f));
 
     return { params.begin(), params.end() };
 }
