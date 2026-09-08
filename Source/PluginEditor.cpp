@@ -30,6 +30,27 @@ NeuralFlowAmpAudioProcessorEditor::NeuralFlowAmpAudioProcessorEditor (NeuralFlow
     setupKnob(highKnob, highAttachment, "HIGH", "HIGH", juce::Colour(0, 213, 255));
     setupKnob(masterKnob, masterAttachment, "MASTER", "MASTER", juce::Colour(0, 255, 150));
     startTimer(60); 
+
+	// Load IR Button
+    loadIRButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    loadIRButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+
+	addAndMakeVisible(loadIRButton);
+
+    loadIRButton.onClick = [this]() {
+        fileChooser = std::make_unique<juce::FileChooser>("Select an IR file (.wav)", juce::File::getSpecialLocation(juce::File::userDesktopDirectory), "*.wav");
+        
+		auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
+    
+        fileChooser->launchAsync(chooserFlags, [this](const juce::FileChooser& fc) {
+			auto file = fc.getResult();
+            if (file.existsAsFile()) {
+				audioProcessor.loadImpulseResponse(file);
+
+				loadIRButton.setButtonText(file.getFileNameWithoutExtension());
+            }
+        });
+    };
 }
 
 NeuralFlowAmpAudioProcessorEditor::~NeuralFlowAmpAudioProcessorEditor()
@@ -138,6 +159,10 @@ void NeuralFlowAmpAudioProcessorEditor::resized()
     flexBox.items.add(juce::FlexItem(masterKnob).withWidth(kWidth).withHeight(kHeight).withMargin(knobMargin));
 
     flexBox.performLayout(knobPanelArea);
+
+    auto cabContentArea = cabSimArea.withTrimmedTop(40).reduced(15);
+
+    loadIRButton.setBounds(cabContentArea.removeFromTop(30));
 }
 
 void NeuralFlowAmpAudioProcessorEditor::timerCallback()

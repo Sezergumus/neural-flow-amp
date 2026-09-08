@@ -93,6 +93,10 @@ private:
     juce::Rectangle<int> waveformArea;
     juce::Rectangle<int> knobPanelArea;
 
+	// LOAD IR BUTTON
+    juce::TextButton loadIRButton{ "LOAD IR (.wav)" };
+    std::unique_ptr<juce::FileChooser> fileChooser;
+
     std::array<float, NeuralFlowAmpAudioProcessor::scopeSize> scopeDataToDraw;
     void timerCallback() override;
 

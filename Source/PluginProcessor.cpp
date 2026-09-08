@@ -22,6 +22,7 @@ NeuralFlowAmpAudioProcessor::NeuralFlowAmpAudioProcessor()
 	 ), apvts(*this, nullptr, "Parameters", createParameterLayout())
 #endif
 {
+	formatManager.registerBasicFormats();
 }
 
 NeuralFlowAmpAudioProcessor::~NeuralFlowAmpAudioProcessor()
@@ -101,6 +102,8 @@ void NeuralFlowAmpAudioProcessor::prepareToPlay (double sampleRate, int samplesP
 	spec.numChannels = getTotalNumOutputChannels();
 
 	eqChain.prepare(spec);
+
+	cabSimulator.prepare(spec);
 }
 
 void NeuralFlowAmpAudioProcessor::releaseResources()
@@ -161,6 +164,8 @@ void NeuralFlowAmpAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
 	juce::dsp::AudioBlock<float> block(buffer);
 	juce::dsp::ProcessContextReplacing<float> context(block);
 	eqChain.process(context);
+
+	cabSimulator.process(context);
 
 	auto currentMaster = apvts.getRawParameterValue("MASTER")->load();
 	float masterGain = currentMaster / 10.0f;
@@ -228,4 +233,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout NeuralFlowAmpAudioProcessor:
     params.push_back(std::make_unique<juce::AudioParameterFloat>("MASTER", "Master", 0.0f, 10.0f, 5.0f));
 
     return { params.begin(), params.end() };
+}
+
+void NeuralFlowAmpAudioProcessor::loadImpulseResponse(const juce::File& file) {
+	if (file.existsAsFile()) {
+		cabSimulator.loadImpulseResponse(file, juce::dsp::Convolution::Stereo::yes, juce::dsp::Convolution::Trim::yes, 0, juce::dsp::Convolution::Normalise::yes);
+	}
 }

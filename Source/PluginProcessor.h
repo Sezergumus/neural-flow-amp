@@ -52,6 +52,10 @@ public:
     std::array<float, scopeSize> scopeData;
     std::atomic<bool> isNextFrameReady{ false };
 
+    void loadImpulseResponse(const juce::File& file);
+
+    juce::dsp::Convolution cabSimulator;
+    juce::AudioFormatManager formatManager;
 private:
     //==============================================================================    
 	juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
