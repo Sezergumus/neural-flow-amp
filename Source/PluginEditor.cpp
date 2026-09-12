@@ -7,8 +7,6 @@ NeuralFlowAmpAudioProcessorEditor::NeuralFlowAmpAudioProcessorEditor (NeuralFlow
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (1600, 900);
-
     auto setupKnob = [this](juce::Slider& slider, std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>& attachment,
         const juce::String& paramID, const juce::String& displayName, juce::Colour neonColour)
         {
@@ -24,14 +22,29 @@ NeuralFlowAmpAudioProcessorEditor::NeuralFlowAmpAudioProcessorEditor (NeuralFlow
             attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.apvts, paramID, slider);
         };
 
+    // 1. MAIN AMP KNOBS
     setupKnob(driveKnob, driveAttachment, "DRIVE", "DRIVE", juce::Colour(255, 140, 0));
     setupKnob(lowKnob, lowAttachment, "LOW", "LOW", juce::Colour(0, 213, 255));
     setupKnob(midKnob, midAttachment, "MID", "MID", juce::Colour(0, 213, 255));
     setupKnob(highKnob, highAttachment, "HIGH", "HIGH", juce::Colour(0, 213, 255));
     setupKnob(masterKnob, masterAttachment, "MASTER", "MASTER", juce::Colour(0, 255, 150));
-    startTimer(60); 
 
-	// Load IR Button
+    // 2. PEDALS AND KNOBS
+    addAndMakeVisible(compressorBox);
+    addAndMakeVisible(overdriveBox);
+
+    auto compColor = juce::Colour(0, 213, 255);
+    setupKnob(compSustainKnob, compSustAtt, "COMP_SUST", "SUSTAIN", compColor);
+    setupKnob(compAttackKnob, compAttAtt, "COMP_ATT", "ATTACK", compColor);
+    setupKnob(compBlendKnob, compBlendAtt, "COMP_MIX", "BLEND", compColor);
+    setupKnob(compLevelKnob, compLvlAtt, "COMP_LVL", "LEVEL", compColor);
+
+    auto odColor = juce::Colour(255, 60, 60);
+    setupKnob(odGainKnob, odGainAtt, "OD_GAIN", "GAIN", odColor);
+    setupKnob(odToneKnob, odToneAtt, "OD_TONE", "TONE", odColor);
+    setupKnob(odLevelKnob, odLvlAtt, "OD_LVL", "LEVEL", odColor);
+
+	// 3. LOAD IR BUTTON
     loadIRButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     loadIRButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
 
@@ -51,6 +64,11 @@ NeuralFlowAmpAudioProcessorEditor::NeuralFlowAmpAudioProcessorEditor (NeuralFlow
             }
         });
     };
+
+    // 60 FPS
+    startTimerHz(60);
+
+    setSize(1600, 900);
 }
 
 NeuralFlowAmpAudioProcessorEditor::~NeuralFlowAmpAudioProcessorEditor()
@@ -136,6 +154,7 @@ void NeuralFlowAmpAudioProcessorEditor::resized()
     area.removeFromLeft(35); 
     cabSimArea = area;
 
+    // 1. LEAD CHANNEL & WAVEFORM AREA
     auto leadContent = leadChannelArea.withTrimmedTop(35).reduced(15, 15);
 
     knobPanelArea = leadContent.removeFromRight(512);
@@ -160,6 +179,54 @@ void NeuralFlowAmpAudioProcessorEditor::resized()
 
     flexBox.performLayout(knobPanelArea);
 
+    // 2. SIGNAL CHAIN AREA
+    auto chainContent = signalChainArea.withTrimmedTop(35).reduced(15);
+
+    int pedalGap = 15;
+    int singlePedalWidth = (chainContent.getWidth() - pedalGap) / 2;
+
+    auto compArea = chainContent.removeFromLeft(singlePedalWidth);
+    chainContent.removeFromLeft(pedalGap);
+    auto odArea = chainContent;
+
+    compressorBox.setBounds(compArea);
+    overdriveBox.setBounds(odArea);
+
+    // Comp
+    juce::FlexBox compFlex;
+    compFlex.flexDirection = juce::FlexBox::Direction::row;
+    compFlex.justifyContent = juce::FlexBox::JustifyContent::center;
+    compFlex.alignItems = juce::FlexBox::AlignItems::center;
+
+    int cWidth = 48;
+    int cHeight = 78;
+    juce::FlexItem::Margin cMargin(0, 2, 0, 2);
+
+    compFlex.items.add(juce::FlexItem(compSustainKnob).withWidth(cWidth).withHeight(cHeight).withMargin(cMargin));
+    compFlex.items.add(juce::FlexItem(compAttackKnob).withWidth(cWidth).withHeight(cHeight).withMargin(cMargin));
+    compFlex.items.add(juce::FlexItem(compBlendKnob).withWidth(cWidth).withHeight(cHeight).withMargin(cMargin));
+    compFlex.items.add(juce::FlexItem(compLevelKnob).withWidth(cWidth).withHeight(cHeight).withMargin(cMargin));
+
+    compFlex.performLayout(compArea.withTrimmedTop(25));
+
+    // OD
+    juce::FlexBox odFlex;
+    odFlex.flexDirection = juce::FlexBox::Direction::row;
+    odFlex.justifyContent = juce::FlexBox::JustifyContent::center;
+    odFlex.alignItems = juce::FlexBox::AlignItems::center;
+
+    int odWidth = 54;
+    int odHeight = 82;
+    juce::FlexItem::Margin odMargin(0, 4, 0, 4);
+
+    odFlex.items.add(juce::FlexItem(odGainKnob).withWidth(odWidth).withHeight(odHeight).withMargin(odMargin));
+    odFlex.items.add(juce::FlexItem(odToneKnob).withWidth(odWidth).withHeight(odHeight).withMargin(odMargin));
+    odFlex.items.add(juce::FlexItem(odLevelKnob).withWidth(odWidth).withHeight(odHeight).withMargin(odMargin));
+
+    odFlex.performLayout(odArea.withTrimmedTop(25));
+
+
+    // 3. CAB SIM AREA
     auto cabContentArea = cabSimArea.withTrimmedTop(40).reduced(15);
 
     loadIRButton.setBounds(cabContentArea.removeFromTop(30));

@@ -64,6 +64,36 @@ public:
     }
 };
 
+class StompboxUI : public juce::Component {
+    public: 
+		StompboxUI(const juce::String& effectName, juce::Colour ledColor) : name (effectName), neon (ledColor) {}
+    
+        void paint(juce::Graphics& g) override {
+			auto bounds = getLocalBounds().toFloat();
+
+            // Pedal Base
+            g.setColour(juce::Colour(18,20,24));
+			g.fillRoundedRectangle(bounds, 6.0f);
+
+            // Frame and Neon 
+            g.setColour(neon.withAlpha(0.4f));
+			g.drawRoundedRectangle(bounds, 6.0f, 1.5f);
+
+            // Pedal name and LED
+            g.setColour(juce::Colours::white.withAlpha(0.9f));
+            g.setFont(juce::Font(13.0f, juce::Font::bold));
+            g.drawText(name, bounds.removeFromTop(25), juce::Justification::centred, false);
+
+            // LED dot
+            g.setColour(neon);
+            g.fillEllipse(bounds.getX() + 10, 8, 6, 6);
+        }
+
+    private:
+        juce::String name;
+        juce::Colour neon;
+};
+
 //==============================================================================
 /**
 */
@@ -78,8 +108,7 @@ public:
     void resized() override;
 
 private:
-    // This reference is provided as a quick way for your editor to
-    // access the processor object that created it.
+
     CustomLookAndFeel customTheme;
     juce::Slider driveKnob, lowKnob, midKnob, highKnob, masterKnob;
 	std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> driveAttachment, lowAttachment, midAttachment, highAttachment, masterAttachment;
@@ -96,6 +125,16 @@ private:
 	// LOAD IR BUTTON
     juce::TextButton loadIRButton{ "LOAD IR (.wav)" };
     std::unique_ptr<juce::FileChooser> fileChooser;
+
+    // Pedal UI Components and Controls
+    StompboxUI compressorBox{ "COMPRESSOR", juce::Colour(0,213,255) };
+    StompboxUI overdriveBox{ "OVERDRIVE", juce::Colour(255,60,60) };
+
+    juce::Slider compSustainKnob, compAttackKnob, compBlendKnob, compLevelKnob;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> compSustAtt, compAttAtt, compBlendAtt, compLvlAtt;
+
+    juce::Slider odGainKnob, odToneKnob, odLevelKnob;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> odGainAtt, odToneAtt, odLvlAtt;
 
     std::array<float, NeuralFlowAmpAudioProcessor::scopeSize> scopeDataToDraw;
     void timerCallback() override;
